@@ -5,7 +5,7 @@ section in the profile README. It uses Python's standard library and does not
 need a personal token or access to private repositories.
 
 The source is GitHub's public contribution calendar. It includes only the
-aggregate counts the account already shares publicly. The exact 90-day window
+aggregate counts the account already shares publicly. The exact 60-day window
 includes the current UTC date, so today's count can be partial. GitHub's own
 contribution eligibility rules and processing delays still apply. Month labels
 and colors follow the public calendar; repository content is never requested.

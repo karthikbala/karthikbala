@@ -1,4 +1,4 @@
-name: Update 90-day activity
+name: Update 60-day activity
 
 on:
   schedule:
@@ -27,16 +27,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check calendar parsing and date boundaries
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
-      - name: Refresh the rolling 90-day chart
+      - name: Refresh the rolling 60-day chart
         run: python3 scripts/update_activity.py
       - name: Publish updated profile assets
         run: |
-          git add README.md assets/activity-90-days.svg
+          git add README.md assets/activity-60-days.svg
           if git diff --cached --quiet; then
             echo 'Activity is already current.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Refresh last 90 days of contribution activity'
+          git commit -m 'Refresh last 60 days of contribution activity'
           git push

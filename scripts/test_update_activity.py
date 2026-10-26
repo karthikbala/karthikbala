@@ -20,13 +20,13 @@ class ActivityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parser.counts()
 
-    def test_90_days_across_year_boundary_and_incomplete_calendar(self):
+    def test_60_days_across_year_boundary_and_incomplete_calendar(self):
         end = date(2027, 1, 15)
         counts = {end - timedelta(days=i): (1, 1) for i in range(100)}
         counts[end + timedelta(days=1)] = (100, 4)
         days = select_window(counts, end)
-        self.assertEqual(len(days), 90)
-        self.assertEqual(days[0][0], date(2026, 10, 18))
+        self.assertEqual(len(days), 60)
+        self.assertEqual(days[0][0], date(2026, 11, 17))
         self.assertEqual(days[-1][0], end)
         del counts[end]
         with self.assertRaises(ValueError):
@@ -34,9 +34,9 @@ class ActivityTests(unittest.TestCase):
 
     def test_svg_and_readme_refresh_preserve_profile(self):
         end = date(2026, 10, 26)
-        days = select_window({end - timedelta(days=i): (0, 0) for i in range(90)}, end)
+        days = select_window({end - timedelta(days=i): (0, 0) for i in range(60)}, end)
         root = ElementTree.fromstring(render_svg(days))
-        self.assertEqual(len(root.findall('.//{http://www.w3.org/2000/svg}rect[{http://www.w3.org/2000/svg}title]')), 90)
+        self.assertEqual(len(root.findall('.//{http://www.w3.org/2000/svg}rect[{http://www.w3.org/2000/svg}title]')), 60)
         labels = [node.get('x') for node in root.findall('{http://www.w3.org/2000/svg}text') if node.get('y') == '53']
         self.assertEqual(len(labels), len(set(labels)))
         original = '# Profile\n\n## Products I work on\n\nExisting portfolio.\n'

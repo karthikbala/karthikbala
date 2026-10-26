@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render 90 days of GitHub's public contribution counts, without credentials."""
+"""Render 60 days of GitHub's public contribution counts, without credentials."""
 
 import argparse
 from datetime import date, datetime, timedelta, timezone
@@ -12,6 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+WINDOW_DAYS = 60
 START = "<!-- ACTIVITY:START -->"
 END = "<!-- ACTIVITY:END -->"
 
@@ -79,8 +80,8 @@ def fetch_calendar(username, year):
 
 
 def select_window(calendars, end):
-    start = end - timedelta(days=89)
-    days = [start + timedelta(days=i) for i in range(90)]
+    start = end - timedelta(days=WINDOW_DAYS - 1)
+    days = [start + timedelta(days=i) for i in range(WINDOW_DAYS)]
     missing = [day.isoformat() for day in days if day not in calendars]
     if missing:
         raise ValueError(f"Incomplete calendar; missing {len(missing)} days")
@@ -94,7 +95,7 @@ def render_svg(days):
     peak_day, peak, _ = max(days, key=lambda item: item[1])
     summary = f"{total:,} contributions across {active} active days"
     parts = [f'''<svg xmlns="http://www.w3.org/2000/svg" width="840" height="270" viewBox="0 0 840 270" role="img" aria-labelledby="title desc">
-<title id="title">Last 90 days: {summary}</title>
+<title id="title">Last {WINDOW_DAYS} days: {summary}</title>
 <desc id="desc">{start:%d %b %Y} to {end:%d %b %Y}, UTC. Daily GitHub contribution counts, including publicly shared anonymized private activity.</desc>
 <style>
 text{{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;fill:#1f2328}}
@@ -103,7 +104,7 @@ text{{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif
 @media(prefers-color-scheme:dark){{text{{fill:#e6edf3}} .muted{{fill:#9198a1}} .card{{fill:#161b22;stroke:#30363d}} .l0{{fill:#30363d}}}}
 </style>
 <rect class="card" x="0.5" y="0.5" width="839" height="269" rx="12"/>
-<text x="28" y="38" font-size="22" font-weight="650">Last 90 days</text>
+<text x="28" y="38" font-size="22" font-weight="650">Last {WINDOW_DAYS} days</text>
 <text class="muted" x="28" y="63" font-size="13">{start:%d %b} – {end:%d %b %Y} · UTC</text>
 <text x="28" y="124" font-size="38" font-weight="650">{total:,}</text>
 <text class="muted" x="28" y="147" font-size="14">contributions</text>
@@ -111,14 +112,18 @@ text{{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif
 <text class="muted" x="232" y="147" font-size="14">active days</text>
 <text class="muted" x="28" y="196" font-size="13">Busiest day: {peak:,} contributions · {peak_day:%d %b}</text>
 <text class="muted" x="28" y="236" font-size="11">Updated {end:%d %b %Y} · Today's count may still grow</text>''']
-    # Sunday-first columns, including empty cells outside the exact 90-day window.
+    # Sunday-first columns, including empty cells outside the exact rolling window.
     origin = start - timedelta(days=(start.weekday() + 1) % 7)
+    columns = (end - origin).days // 7 + 1
+    grid_x = 486 + (14 - columns) * 11
     previous_month = None
     month_labels = {}
     for day, count, level in days:
         column, row = divmod((day - origin).days, 7)
-        x, y = 486 + column * 22, 71 + row * 22
+        x, y = grid_x + column * 22, 71 + row * 22
         if day.month != previous_month:
+            if month_labels and x - next(reversed(month_labels)) < 44:
+                month_labels.popitem()
             month_labels[x] = day.strftime("%b")
             previous_month = day.month
         label = escape(f"{day.isoformat()}: {count:,} contributions")
@@ -126,7 +131,7 @@ text{{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif
     for x, label in month_labels.items():
         parts.append(f'<text class="muted" x="{x}" y="53" font-size="11">{label}</text>')
     for row, label in [(1, "Mon"), (3, "Wed"), (5, "Fri")]:
-        parts.append(f'<text class="muted" x="451" y="{84 + row * 22}" font-size="10">{label}</text>')
+        parts.append(f'<text class="muted" x="{grid_x - 35}" y="{84 + row * 22}" font-size="10">{label}</text>')
     parts.append('<text class="muted" x="594" y="245" font-size="10">Less</text>')
     for level in range(5):
         parts.append(f'<rect class="l{level}" x="{625 + level * 21}" y="233" width="16" height="16" rx="3"/>')
@@ -138,9 +143,9 @@ def update_readme(text, days):
     total = sum(count for _, count, _ in days)
     active = sum(count > 0 for _, count, _ in days)
     block = f'''{START}
-## Last 90 days
+## Last {WINDOW_DAYS} days
 
-![{total:,} GitHub contributions across {active} active days over the last 90 days](assets/activity-90-days.svg)
+![{total:,} GitHub contributions across {active} active days over the last {WINDOW_DAYS} days](assets/activity-60-days.svg)
 
 **Current focus:** [Warehouse design](https://github.com/karthikbala/aislewise-showcase) · [Contract intelligence](https://github.com/karthikbala/ace-contract-intelligence-showcase) · [Logistics and tracking](https://github.com/karthikbala/container-sourcing)
 
@@ -164,7 +169,7 @@ def main():
     if not re.fullmatch(r"[A-Za-z0-9-]+", args.username):
         raise ValueError("Invalid GitHub username")
     end = args.end_date or datetime.now(timezone.utc).date()
-    start = end - timedelta(days=89)
+    start = end - timedelta(days=WINDOW_DAYS - 1)
     calendar = {}
     for year in range(start.year, end.year + 1):
         calendar.update(fetch_calendar(args.username, year))
@@ -174,7 +179,7 @@ def main():
     svg = render_svg(days)
     readme = update_readme((root / "README.md").read_text(), days)
     (root / "assets").mkdir(exist_ok=True)
-    (root / "assets/activity-90-days.svg").write_text(svg)
+    (root / "assets/activity-60-days.svg").write_text(svg)
     (root / "README.md").write_text(readme)
     print(f"{start} to {end}: {sum(d[1] for d in days):,} contributions, "
           f"{sum(d[1] > 0 for d in days)} active days")
