@@ -6,6 +6,16 @@ I build enterprise products that connect AI, data and operational workflows. Wit
 
 I stay hands-on in architecture and engineering while leading teams from product concept through delivery, scale and ongoing operation.
 
+<!-- ACTIVITY:START -->
+## Last 90 days
+
+![913 GitHub contributions across 32 active days over the last 90 days](assets/activity-90-days.svg)
+
+**Current focus:** [Warehouse design](https://github.com/karthikbala/aislewise-showcase) · [Contract intelligence](https://github.com/karthikbala/ace-contract-intelligence-showcase) · [Logistics and tracking](https://github.com/karthikbala/container-sourcing)
+
+<sub>Updated daily from GitHub's public contribution calendar, including anonymized private counts you choose to share. Repository names and private content are not collected. Counts follow GitHub's contribution rules.</sub>
+<!-- ACTIVITY:END -->
+
 ## Products I work on
 
 | Product area | Selected work |
