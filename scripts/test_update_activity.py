@@ -20,28 +20,36 @@ class ActivityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parser.counts()
 
-    def test_60_days_across_year_boundary_and_incomplete_calendar(self):
+    def test_90_days_across_year_boundary_and_incomplete_calendar(self):
         end = date(2027, 1, 15)
         counts = {end - timedelta(days=i): (1, 1) for i in range(100)}
         counts[end + timedelta(days=1)] = (100, 4)
         days = select_window(counts, end)
-        self.assertEqual(len(days), 60)
-        self.assertEqual(days[0][0], date(2026, 11, 17))
+        self.assertEqual(len(days), 90)
+        self.assertEqual(days[0][0], date(2026, 10, 18))
         self.assertEqual(days[-1][0], end)
         del counts[end]
         with self.assertRaises(ValueError):
             select_window(counts, end)
 
     def test_svg_and_readme_refresh_preserve_profile(self):
-        end = date(2026, 10, 26)
-        days = select_window({end - timedelta(days=i): (0, 0) for i in range(60)}, end)
+        end = date(2027, 1, 1)
+        days = select_window({end - timedelta(days=i): (0, 0) for i in range(90)}, end)
         root = ElementTree.fromstring(render_svg(days))
-        self.assertEqual(len(root.findall('.//{http://www.w3.org/2000/svg}rect[{http://www.w3.org/2000/svg}title]')), 60)
-        labels = [node.get('x') for node in root.findall('{http://www.w3.org/2000/svg}text') if node.get('y') == '53']
-        self.assertEqual(len(labels), len(set(labels)))
+        namespaces = {'svg': 'http://www.w3.org/2000/svg'}
+        day_titles = root.findall('svg:rect/svg:title', namespaces)
+        self.assertEqual(len(day_titles), 90)
+        self.assertEqual(day_titles[0].text, '2026-10-04: 0 contributions')
+        self.assertEqual(day_titles[-1].text, '2027-01-01: 0 contributions')
+        self.assertEqual(root.find('svg:text[@y="63"]', namespaces).text, '04 Oct 2026 – 01 Jan 2027 · UTC')
+        labels = [int(node.get('x')) for node in root.findall('svg:text[@y="53"]', namespaces)]
+        self.assertGreaterEqual(min(right - left for left, right in zip(labels, labels[1:])), 44)
         original = '# Profile\n\n## Products I work on\n\nExisting portfolio.\n'
         updated = update_readme(original, days)
+        self.assertIn('## Last 90 days', updated)
+        self.assertIn('![0 GitHub contributions across 0 active days over the last 90 days](assets/activity-90-days.svg)', updated)
         self.assertEqual(update_readme(updated, days), updated)
+        self.assertTrue(updated.startswith('# Profile\n\n'))
         self.assertTrue(updated.endswith('Existing portfolio.\n'))
 
 

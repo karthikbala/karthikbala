@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render 60 days of GitHub's public contribution counts, without credentials."""
+"""Render 90 days of GitHub's public contribution counts, without credentials."""
 
 import argparse
 from datetime import date, datetime, timedelta, timezone
@@ -12,7 +12,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-WINDOW_DAYS = 60
+WINDOW_DAYS = 90
+ASSET_PATH = f"assets/activity-{WINDOW_DAYS}-days.svg"
 START = "<!-- ACTIVITY:START -->"
 END = "<!-- ACTIVITY:END -->"
 
@@ -90,6 +91,7 @@ def select_window(calendars, end):
 
 def render_svg(days):
     start, end = days[0][0], days[-1][0]
+    start_label = start.strftime("%d %b" if start.year == end.year else "%d %b %Y")
     total = sum(count for _, count, _ in days)
     active = sum(count > 0 for _, count, _ in days)
     peak_day, peak, _ = max(days, key=lambda item: item[1])
@@ -105,7 +107,7 @@ text{{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif
 </style>
 <rect class="card" x="0.5" y="0.5" width="839" height="269" rx="12"/>
 <text x="28" y="38" font-size="22" font-weight="650">Last {WINDOW_DAYS} days</text>
-<text class="muted" x="28" y="63" font-size="13">{start:%d %b} – {end:%d %b %Y} · UTC</text>
+<text class="muted" x="28" y="63" font-size="13">{start_label} – {end:%d %b %Y} · UTC</text>
 <text x="28" y="124" font-size="38" font-weight="650">{total:,}</text>
 <text class="muted" x="28" y="147" font-size="14">contributions</text>
 <text x="232" y="124" font-size="38" font-weight="650">{active}</text>
@@ -145,7 +147,7 @@ def update_readme(text, days):
     block = f'''{START}
 ## Last {WINDOW_DAYS} days
 
-![{total:,} GitHub contributions across {active} active days over the last {WINDOW_DAYS} days](assets/activity-60-days.svg)
+![{total:,} GitHub contributions across {active} active days over the last {WINDOW_DAYS} days]({ASSET_PATH})
 
 **Current focus:** [Warehouse design](https://github.com/karthikbala/aislewise-showcase) · [Contract intelligence](https://github.com/karthikbala/ace-contract-intelligence-showcase) · [Logistics and tracking](https://github.com/karthikbala/container-sourcing)
 
@@ -179,7 +181,7 @@ def main():
     svg = render_svg(days)
     readme = update_readme((root / "README.md").read_text(), days)
     (root / "assets").mkdir(exist_ok=True)
-    (root / "assets/activity-60-days.svg").write_text(svg)
+    (root / ASSET_PATH).write_text(svg)
     (root / "README.md").write_text(readme)
     print(f"{start} to {end}: {sum(d[1] for d in days):,} contributions, "
           f"{sum(d[1] > 0 for d in days)} active days")
